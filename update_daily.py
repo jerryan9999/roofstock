@@ -184,7 +184,7 @@ def score_process(item,para_max):
 if __name__ == '__main__':
 
   today = datetime.date.today().isoformat()
-  daily_csv = 'daily/'+'room_json_{}.txt'.format(today)
+  daily_csv = config.DAILY_PATH +'room_json_{}.txt'.format(today)
   with open(daily_csv) as f:
     properties = json.load(f)
   para_max = max_paras()
