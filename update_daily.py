@@ -153,6 +153,7 @@ def max_paras():
      MAX(neighborscore) as neighborscore_max,
      MAX(yearlyinsurancecost+yearlypropertytaxes) as cost_max
     FROM property
+    WHERE source = 'roofstock'
   """
   cursor.execute(sql)
   _value = cursor.fetchone()
