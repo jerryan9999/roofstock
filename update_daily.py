@@ -30,6 +30,7 @@ master_ref = {
     "yearlyinsurancecost":{"level":1,"upper":"financial","key":"yearlyInsuranceCost"},
     "yearlypropertytaxes":{"level":1,"upper":"financial","key":"yearlyPropertyTaxes"},
     "appreciation":{"level":1,"upper":"computed","key":"appreciation"},
+    "caprate":{"level":1,"upper":"computed","key":"capRate"},
     "neighborscore":{"level":1,"upper":"score","key":"neighborhoodScore"},
     "score":{"level":None,"upper":None,"key":None},
 
@@ -78,7 +79,8 @@ def update2_db(item):
               created_at,
               updated_at,
               neighborscore,
-              imgurl
+              imgurl,
+              caprate
       )
       VALUES (
               %(source)s,
@@ -110,8 +112,8 @@ def update2_db(item):
               %(created_at)s,
               %(updated_at)s,
               %(neighborscore)s,
-              %(imgurl)s
-
+              %(imgurl)s,
+              %(caprate)s
       )
       ON CONFLICT ON CONSTRAINT unique_property_constraint
       DO UPDATE SET
@@ -121,7 +123,9 @@ def update2_db(item):
         score_v1_appreciation = %(score_v1_appreciation)s,
         score_v2_balance = %(score_v2_balance)s,
         score_v3_return = %(score_v3_return)s,
-        score_version = %(score_version)s
+        score_version = %(score_version)s,
+        caprate=%(caprate)s,
+        score_v4_risk =%(score_v4_risk)s
     """
   cursor.execute(sql,item)
   conn.commit()
@@ -151,7 +155,8 @@ def max_paras():
      MAX(bedrooms*0.3+bathrooms*0.2) as property_max,
      MAX(appreciation) as appreciation_max,
      MAX(neighborscore) as neighborscore_max,
-     MAX(yearlyinsurancecost+yearlypropertytaxes) as cost_max
+     MAX(yearlyinsurancecost+yearlypropertytaxes) as cost_max,
+     MAX(caprate) as caprate_max
     FROM property
     WHERE source = 'roofstock'
   """
@@ -161,7 +166,8 @@ def max_paras():
           "property_max":_value[1],
           "appreciation_max":_value[2],
           "neighborscore_max":_value[3],
-          "cost_max":_value[4]
+          "cost_max":_value[4],
+          "caprate_max":_value[5]
          }
 
 
@@ -174,11 +180,17 @@ def score_process(item,para_max):
     item['score_v1_appreciation'] = None
     item['score_v2_balance'] = None
     item['score_v3_return'] = None
+    item['score_v4_risk'] = None
     return item
-  
+
   item['score_v1_appreciation'] = 0.6*item['appreciation']/para_max['appreciation_max']+0.2*rental_sale_ratio+0.2*property_score-0.2*cost+0.2*item['neighborscore']/para_max['neighborscore_max']
   item['score_v2_balance'] = 0.4*item['appreciation']/para_max['appreciation_max']+0.4*rental_sale_ratio+0.2*property_score-0.2*cost+0.2*item['neighborscore']/para_max['neighborscore_max']
   item['score_v3_return'] = 0.2*item['appreciation']/para_max['appreciation_max']+0.6*rental_sale_ratio+0.2*property_score-0.2*cost+0.2*item['neighborscore']/para_max['neighborscore_max']
+
+  if not para_max.get('caprate_max'):
+    item['score_v4_risk'] = None
+    return item
+  item['score_v4_risk'] = item['caprate']/para_max['caprate_max']
 
   return item
 
@@ -198,6 +210,5 @@ if __name__ == '__main__':
     now = datetime.datetime.now()
     item['created_at'] = now
     item['updated_at'] = now
-
     item['score_version'] = 0
     update2_db(item)

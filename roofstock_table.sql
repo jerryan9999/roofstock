@@ -36,7 +36,10 @@ CREATE TABLE property (
     score_v1_appreciation character varying,
     score_v2_balance character varying,
     score_v3_return character varying,
-    score_version integer
+    score_version integer,
+    caprate double precision,
+    score_v4_risk double precision
+
 );
 
 
